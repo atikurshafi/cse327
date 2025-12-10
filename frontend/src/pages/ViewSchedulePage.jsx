@@ -5,7 +5,9 @@ import DeleteModal from '../components/DeleteModal';
 
 function ViewSchedulePage() {
   const [filterType, setFilterType] = useState('all');
+  const [subFilterType, setSubFilterType] = useState('room_only');
   const [filterValue, setFilterValue] = useState('');
+  const [secondFilterValue, setSecondFilterValue] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const queryClient = useQueryClient();
@@ -56,6 +58,17 @@ function ViewSchedulePage() {
       return schedule.instructorId?._id === filterValue;
     }
     if (filterType === 'room') {
+      if (subFilterType === 'room_and_timeslot') {
+        if (!filterValue || !secondFilterValue) return true; // Show all until fully selected (or maybe show nothing?) -> Let's show matching, if partially selected maybe just filter by what's there?
+        // User requirement: "both(room number, and timeslot) will be required"
+        // So if one is missing, maybe we shouldn't show anything or show everything?
+        // Usually filtering implies "show matches". If I select Room X, I see Room X. If I select Room X AND Time Y, I see that intersection.
+        if (filterValue && !secondFilterValue) return schedule.roomId?._id === filterValue;
+        if (filterValue && secondFilterValue) {
+          return schedule.roomId?._id === filterValue && schedule.timeslotId?._id === secondFilterValue;
+        }
+        return true;
+      }
       return schedule.roomId?._id === filterValue;
     }
     if (filterType === 'timeslot') {
@@ -82,6 +95,8 @@ function ViewSchedulePage() {
               onChange={(e) => {
                 setFilterType(e.target.value);
                 setFilterValue('');
+                setSubFilterType('room_only'); // Reset sub-filter
+                setSecondFilterValue('');
               }}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
@@ -91,25 +106,68 @@ function ViewSchedulePage() {
               <option value="timeslot">By Timeslot</option>
             </select>
           </div>
+
+          {filterType === 'room' && (
+            <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Room Filter Type</label>
+                <select
+                  value={subFilterType}
+                  onChange={(e) => {
+                    setSubFilterType(e.target.value);
+                    // Keep room selection if possible, reset second value
+                    setSecondFilterValue('');
+                  }}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="room_only">By Room Number</option>
+                  <option value="room_and_timeslot">Check Availability (Room + Timeslot)</option>
+                </select>
+              </div>
+            </div>
+          )}
+
           {filterType !== 'all' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select {filterType.charAt(0).toUpperCase() + filterType.slice(1)}</label>
-              <select
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="">Select...</option>
-                {filterType === 'instructor' && instructors.map(instructor => (
-                  <option key={instructor._id} value={instructor._id}>{instructor.name}</option>
-                ))}
-                {filterType === 'room' && rooms.map(room => (
-                  <option key={room._id} value={room._id}>{room.roomNumber}</option>
-                ))}
-                {filterType === 'timeslot' && timeslots.map(timeslot => (
-                  <option key={timeslot._id} value={timeslot._id}>{timeslot.code}</option>
-                ))}
-              </select>
+            <div className={filterType === 'room' && subFilterType === 'room_and_timeslot' ? "col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4" : ""}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {filterType === 'instructor' && "Select Instructor"}
+                  {filterType === 'timeslot' && "Select Timeslot"}
+                  {filterType === 'room' && "Select Room"}
+                </label>
+                <select
+                  value={filterValue}
+                  onChange={(e) => setFilterValue(e.target.value)}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="">Select...</option>
+                  {filterType === 'instructor' && instructors.map(instructor => (
+                    <option key={instructor._id} value={instructor._id}>{instructor.name}</option>
+                  ))}
+                  {filterType === 'room' && rooms.map(room => (
+                    <option key={room._id} value={room._id}>{room.roomNumber}</option>
+                  ))}
+                  {filterType === 'timeslot' && timeslots.map(timeslot => (
+                    <option key={timeslot._id} value={timeslot._id}>{timeslot.code}</option>
+                  ))}
+                </select>
+              </div>
+
+              {filterType === 'room' && subFilterType === 'room_and_timeslot' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Timeslot</label>
+                  <select
+                    value={secondFilterValue}
+                    onChange={(e) => setSecondFilterValue(e.target.value)}
+                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Timeslot...</option>
+                    {timeslots.map(timeslot => (
+                      <option key={timeslot._id} value={timeslot._id}>{timeslot.code} ({timeslot.dayPattern} {timeslot.startTime}-{timeslot.endTime})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -190,4 +248,7 @@ function ViewSchedulePage() {
 }
 
 export default ViewSchedulePage;
+
+
+
 
