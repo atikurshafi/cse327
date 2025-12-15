@@ -1,5 +1,6 @@
 const Schedule = require('../models/Schedule');
 const Course = require('../models/Course');
+const Timeslot = require('../models/Timeslot');
 const Room = require('../models/Room');
 
 /**
@@ -24,16 +25,16 @@ async function checkInstructorConflict(instructorId, timeslotId, excludeSchedule
     instructorId: instructorId,
     timeslotId: timeslotId
   };
-  
+
   if (excludeScheduleId) {
     query._id = { $ne: excludeScheduleId };
   }
-  
+
   const conflict = await Schedule.findOne(query)
     .populate('courseId', 'code name')
     .populate('sectionId', 'sectionNumber')
     .populate('timeslotId', 'code dayPattern startTime endTime');
-  
+
   if (conflict) {
     return {
       type: 'INSTRUCTOR_CONFLICT',
@@ -41,7 +42,7 @@ async function checkInstructorConflict(instructorId, timeslotId, excludeSchedule
       conflictingSchedule: conflict
     };
   }
-  
+
   return null;
 }
 
@@ -57,16 +58,16 @@ async function checkRoomConflict(roomId, timeslotId, excludeScheduleId = null) {
     roomId: roomId,
     timeslotId: timeslotId
   };
-  
+
   if (excludeScheduleId) {
     query._id = { $ne: excludeScheduleId };
   }
-  
+
   const conflict = await Schedule.findOne(query)
     .populate('courseId', 'code name')
     .populate('sectionId', 'sectionNumber')
     .populate('timeslotId', 'code dayPattern startTime endTime');
-  
+
   if (conflict) {
     return {
       type: 'ROOM_CONFLICT',
@@ -74,7 +75,7 @@ async function checkRoomConflict(roomId, timeslotId, excludeScheduleId = null) {
       conflictingSchedule: conflict
     };
   }
-  
+
   return null;
 }
 
@@ -87,28 +88,28 @@ async function checkRoomConflict(roomId, timeslotId, excludeScheduleId = null) {
 async function checkLabRoomMatch(courseId, roomId) {
   const course = await Course.findById(courseId);
   const room = await Room.findById(roomId);
-  
+
   if (!course || !room) {
     return {
       type: 'INVALID_DATA',
       message: 'Course or Room not found'
     };
   }
-  
+
   if (course.type === 'LAB' && room.type !== 'LAB') {
     return {
       type: 'LAB_ROOM_MISMATCH',
       message: `Lab course ${course.code} must be assigned to a LAB room, but ${room.roomNumber} is a ${room.type} room`
     };
   }
-  
+
   if (course.type === 'THEORY' && room.type !== 'THEORY') {
     return {
       type: 'THEORY_ROOM_MISMATCH',
       message: `Theory course ${course.code} must be assigned to a THEORY room, but ${room.roomNumber} is a ${room.type} room`
     };
   }
-  
+
   return null;
 }
 
@@ -120,7 +121,7 @@ async function checkLabRoomMatch(courseId, roomId) {
  */
 async function checkAllConflicts(scheduleData, excludeScheduleId = null) {
   const conflicts = [];
-  
+
   // Check instructor conflict
   const instructorConflict = await checkInstructorConflict(
     scheduleData.instructorId,
@@ -130,7 +131,7 @@ async function checkAllConflicts(scheduleData, excludeScheduleId = null) {
   if (instructorConflict) {
     conflicts.push(instructorConflict);
   }
-  
+
   // Check room conflict
   const roomConflict = await checkRoomConflict(
     scheduleData.roomId,
@@ -140,7 +141,7 @@ async function checkAllConflicts(scheduleData, excludeScheduleId = null) {
   if (roomConflict) {
     conflicts.push(roomConflict);
   }
-  
+
   // Check lab room match
   const labRoomConflict = await checkLabRoomMatch(
     scheduleData.courseId,
@@ -149,14 +150,30 @@ async function checkAllConflicts(scheduleData, excludeScheduleId = null) {
   if (labRoomConflict) {
     conflicts.push(labRoomConflict);
   }
-  
+
+  // Check club time constraint
+  const clubTimeConflict = await checkClubTimeConstraint(
+    scheduleData.courseId,
+    scheduleData.timeslotId
+  );
+  if (clubTimeConflict) {
+    conflicts.push(clubTimeConflict);
+  }
+
   return conflicts;
 }
+
+const checkClubTimeConstraint = (class1, class2) => {
+  // TODO: implement logic later
+  return false; // no conflict by default
+};
+
 
 module.exports = {
   checkInstructorConflict,
   checkRoomConflict,
   checkLabRoomMatch,
+  checkClubTimeConstraint,
   checkAllConflicts
 };
 

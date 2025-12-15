@@ -26,8 +26,8 @@ exports.getInstructorById = async (req, res) => {
 // Create new instructor
 exports.createInstructor = async (req, res) => {
   try {
-    const { name, email, availability } = req.body;
-    const instructor = new Instructor({ name, email, availability });
+    const { name, email, availability, type } = req.body;
+    const instructor = new Instructor({ name, email, availability, type });
     await instructor.save();
     res.status(201).json(instructor);
   } catch (error) {
@@ -42,10 +42,10 @@ exports.createInstructor = async (req, res) => {
 // Update instructor
 exports.updateInstructor = async (req, res) => {
   try {
-    const { name, email, availability } = req.body;
+    const { name, email, availability, type } = req.body;
     const instructor = await Instructor.findByIdAndUpdate(
       req.params.id,
-      { name, email, availability },
+      { name, email, availability, type },
       { new: true, runValidators: true }
     );
     if (!instructor) {

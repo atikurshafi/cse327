@@ -9,6 +9,8 @@ import RoomsPage from './pages/RoomsPage';
 import TimeslotsPage from './pages/TimeslotsPage';
 import AddSchedulePage from './pages/AddSchedulePage';
 import ViewSchedulePage from './pages/ViewSchedulePage';
+import ClubActivitiesPage from './pages/ClubActivitiesPage';
+import ClubAdminPage from './pages/ClubAdminPage';
 import ConflictsPage from './pages/ConflictsPage';
 
 const queryClient = new QueryClient();
@@ -30,8 +32,8 @@ function App() {
     { to: '/rooms', label: 'Rooms' },
     { to: '/timeslots', label: 'Timeslots' },
     { to: '/schedule/add', label: 'Add Schedule' },
+    { to: '/club-activities', label: 'Club Activities' },
     { to: '/schedule/view', label: 'View Schedule' },
-    { to: '/conflicts', label: 'Conflicts' },
   ];
 
   return (
@@ -40,11 +42,10 @@ function App() {
         <div className="min-h-screen text-slate-900">
           {/* Navigation */}
           <nav
-            className={`sticky top-0 z-40 border-b transition-all duration-300 ${
-              scrolled
-                ? 'bg-white shadow-lg border-orange-100/80'
-                : 'bg-white shadow-sm border-orange-50/80'
-            }`}
+            className={`sticky top-0 z-40 border-b transition-all duration-300 ${scrolled
+              ? 'bg-white shadow-lg border-orange-100/80'
+              : 'bg-white shadow-sm border-orange-50/80'
+              }`}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between h-16 items-center">
@@ -63,10 +64,9 @@ function App() {
                       key={item.to}
                       to={item.to}
                       className={({ isActive }) =>
-                        `group relative px-3 py-2 text-sm font-medium transition-all duration-200 rounded-lg ${
-                          isActive
-                            ? 'text-slate-900 bg-orange-50 border border-orange-100 shadow-sm shadow-orange-200/50'
-                            : 'text-slate-600 hover:text-slate-900 hover:bg-orange-50/70'
+                        `group relative px-3 py-2 text-sm font-medium transition-all duration-200 rounded-lg ${isActive
+                          ? 'text-slate-900 bg-orange-50 border border-orange-100 shadow-sm shadow-orange-200/50'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-orange-50/70'
                         }`
                       }
                     >
@@ -93,6 +93,8 @@ function App() {
               <Route path="/timeslots" element={<TimeslotsPage />} />
               <Route path="/schedule/add" element={<AddSchedulePage />} />
               <Route path="/schedule/view" element={<ViewSchedulePage />} />
+              <Route path="/club-activities" element={<ClubActivitiesPage />} />
+              <Route path="/club-admin" element={<ClubAdminPage />} />
               <Route path="/conflicts" element={<ConflictsPage />} />
             </Routes>
           </main>

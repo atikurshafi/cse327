@@ -12,7 +12,8 @@ function InstructorsPage() {
 
   const { data: instructors = [], isLoading } = useQuery({
     queryKey: ['instructors'],
-    queryFn: () => instructorsAPI.getAll().then(res => res.data)
+    queryFn: () => instructorsAPI.getAll().then(res => res.data),
+    select: (data) => data.filter(instructor => instructor.type !== 'CLUB')
   });
 
   const createMutation = useMutation({

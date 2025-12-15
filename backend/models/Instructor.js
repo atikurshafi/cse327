@@ -17,6 +17,11 @@ const instructorSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: ''
+  },
+  type: {
+    type: String,
+    enum: ['FACULTY', 'CLUB'],
+    default: 'FACULTY'
   }
 }, {
   timestamps: true
