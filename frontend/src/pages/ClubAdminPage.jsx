@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coursesAPI, instructorsAPI, sectionsAPI } from '../api/api';
 import { Link } from 'react-router-dom';
+import DeleteModal from '../components/DeleteModal';
 
 function ClubAdminPage() {
     const [activeTab, setActiveTab] = useState('clubs');
@@ -9,6 +10,8 @@ function ClubAdminPage() {
 
     // --- CLUBS (Instructors) ---
     const [clubForm, setClubForm] = useState({ name: '', email: '' });
+    const [editingClub, setEditingClub] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     const { data: instructors = [] } = useQuery({
         queryKey: ['instructors'],
         queryFn: () => instructorsAPI.getAll().then(res => res.data)
@@ -27,9 +30,48 @@ function ClubAdminPage() {
         }
     });
 
+    const updateClubMutation = useMutation({
+        mutationFn: ({ id, data }) => instructorsAPI.update(id, { ...data, type: 'CLUB' }),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['instructors']);
+            setClubForm({ name: '', email: '' });
+            setEditingClub(null);
+            alert('Club updated successfully!');
+        },
+        onError: (error) => {
+            alert(error.response?.data?.error || 'Failed to update club');
+        }
+    });
+
+    const deleteClubMutation = useMutation({
+        mutationFn: (id) => instructorsAPI.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['instructors']);
+            setDeleteTarget(null);
+            alert('Club deleted successfully!');
+        },
+        onError: (error) => {
+            alert(error.response?.data?.error || 'Failed to delete club');
+        }
+    });
+
     const handleClubSubmit = (e) => {
         e.preventDefault();
-        createClubMutation.mutate(clubForm);
+        if (editingClub) {
+            updateClubMutation.mutate({ id: editingClub._id, data: clubForm });
+        } else {
+            createClubMutation.mutate(clubForm);
+        }
+    };
+
+    const startEditClub = (club) => {
+        setEditingClub(club);
+        setClubForm({ name: club.name, email: club.email });
+    };
+
+    const cancelEdit = () => {
+        setEditingClub(null);
+        setClubForm({ name: '', email: '' });
     };
 
     // --- ACTIVITIES (Courses) ---
@@ -144,7 +186,7 @@ function ClubAdminPage() {
                 {/* CLUBS TAB */}
                 {activeTab === 'clubs' && (
                     <div>
-                        <h2 className="text-xl font-semibold mb-4">Add New Club</h2>
+                        <h2 className="text-xl font-semibold mb-4">{editingClub ? 'Edit Club' : 'Add New Club'}</h2>
                         <form onSubmit={handleClubSubmit} className="mb-8 p-4 bg-gray-50 rounded-md border border-gray-200">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -170,23 +212,48 @@ function ClubAdminPage() {
                                     />
                                 </div>
                             </div>
-                            <button
-                                type="submit"
-                                className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
-                            >
-                                Add Club
-                            </button>
+                            <div className="flex gap-2 mt-4">
+                                <button
+                                    type="submit"
+                                    className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600"
+                                >
+                                    {editingClub ? 'Update Club' : 'Add Club'}
+                                </button>
+                                {editingClub && (
+                                    <button
+                                        type="button"
+                                        onClick={cancelEdit}
+                                        className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
+                            </div>
                         </form>
 
                         <h3 className="text-lg font-medium mb-3">Existing Clubs</h3>
                         <ul className="divide-y divide-gray-200 border rounded-md">
                             {clubs.map(club => (
-                                <li key={club._id} className="p-4 hover:bg-gray-50 flex justify-between">
+                                <li key={club._id} className="p-4 hover:bg-gray-50 flex justify-between items-center">
                                     <div>
                                         <p className="font-medium text-gray-900">{club.name}</p>
                                         <p className="text-sm text-gray-500">{club.email}</p>
                                     </div>
-                                    <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 h-fit">Club</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 h-fit">Club</span>
+                                        <button
+                                            onClick={() => startEditClub(club)}
+                                            className="text-orange-600 hover:text-orange-700 text-sm font-medium"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => setDeleteTarget(club)}
+                                            className="text-red-600 hover:text-red-700 text-sm font-medium"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </li>
                             ))}
                             {clubs.length === 0 && <li className="p-4 text-gray-500">No clubs found.</li>}
@@ -303,6 +370,14 @@ function ClubAdminPage() {
                 )}
 
             </div>
+
+            <DeleteModal
+                isOpen={!!deleteTarget}
+                onClose={() => setDeleteTarget(null)}
+                onConfirm={() => deleteTarget && deleteClubMutation.mutate(deleteTarget._id)}
+                title="Delete Club"
+                message={`Are you sure you want to delete club ${deleteTarget?.name}?`}
+            />
         </div>
     );
 }
